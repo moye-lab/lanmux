@@ -1,0 +1,25 @@
+# Keep the All-in-One Docker image lean: no tests, caches, data or host scripts.
+.git
+.github
+.gitignore
+backend/tests
+backend/__pycache__
+backend/app/__pycache__
+backend/app/routers/__pycache__
+**/__pycache__
+.pytest_cache
+backend/.pytest_cache
+data
+.venv
+*.md
+install.sh
+uninstall.sh
+systemd
+# scripts/ 整体不进镜像，但校验清单是构建时必需的（assets 阶段按它
+# 做 SHA256 校验），用否定规则单独放行；目录本身不排除，只排除其内容，
+# 否则 Docker 不允许重新包含子文件。
+scripts/*
+!scripts/asset-checksums.sha256
+docker-compose.yml
+.env
+.env.example

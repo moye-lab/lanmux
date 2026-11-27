@@ -1,0 +1,20 @@
+# LanMux — 开发者源码构建覆盖文件
+#
+# 只作开发 / 调试 / 自定义镜像时用，不面向普通用户。
+# 普通用户直接用 docker-compose.yml 拉预构建镜像：
+#   docker compose pull && docker compose up -d
+#
+# 开发者从源码构建并启动：
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+services:
+  lanmux:
+    # 与正式 docker-compose.yml 同名 service；覆盖 image 为本地构建，
+    # 避免本地构建产物顶掉 moyelab/lanmux:1.0.2 的 tag。
+    image: lanmux:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+        GITHUB_MIRROR: ${GITHUB_MIRROR:-}

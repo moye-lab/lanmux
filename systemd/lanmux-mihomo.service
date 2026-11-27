@@ -1,0 +1,32 @@
+# LanMux — mihomo core.
+# Do NOT confuse with the user's older `mihomo` unit (mihomo-gateway):
+# this unit only manages LanMux's own binary and config under
+# /opt/lanmux and /etc/lanmux. Never point it at /etc/mihomo.
+[Unit]
+Description=LanMux - mihomo core
+After=network-online.target
+Wants=network-online.target
+# The 5-restarts-in-5-minutes lockout bit the mihomo-gateway before
+# (start-limit-hit looks like "service won't start"). 10 bursts per
+# 300s leaves room for install-time restarts.
+StartLimitBurst=10
+StartLimitIntervalSec=300
+
+[Service]
+Type=simple
+# Non-root runtime (H-15): see lanmux-web.service. mihomo's home (-d)
+# is /etc/lanmux, its only writable path; it binds 10001/7890/9090
+# (all > 1024) and uses no TUN, so no capability is required.
+User=lanmux
+Group=lanmux
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+CapabilityBoundingSet=
+ReadWritePaths=/etc/lanmux
+ExecStart=/opt/lanmux/bin/mihomo -d /etc/lanmux -f /etc/lanmux/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

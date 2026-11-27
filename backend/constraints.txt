@@ -1,0 +1,10 @@
+# Transitive-dependency floors (constraints, not direct dependencies).
+# Passed to pip-compile with -c when generating the lockfiles, so the
+# resolver can never pick a version below these floors.
+#
+# starlette>=0.40.0: fastapi 0.115.0's metadata allows starlette>=0.37.2,
+# and 0.37.2 carries GHSA-f96h-pmfr-66vw (multipart DoS, fixed in 0.40.0);
+# worse, fastapi 0.115.0 requires starlette<0.39.0, so the old floor pair
+# could not even be patched by bumping fastapi alone. Pinning the
+# transitive floor here closes that hole (audit M-45).
+starlette>=0.40.0

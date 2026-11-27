@@ -1,0 +1,11 @@
+# Runtime data (dev + Docker): the DB, generated config, geodata.
+data/
+# Local env (real secrets) — only .env.example is committed.
+.env
+# Python caches.
+__pycache__/
+*.pyc
+.pytest_cache/
+# Local venvs.
+.venv/
+venv/

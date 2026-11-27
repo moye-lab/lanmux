@@ -1,0 +1,37 @@
+# LanMux - web panel (FastAPI/uvicorn).
+# LANMUX_WEB_PORT comes from /etc/lanmux/lanmux.env (EnvironmentFile);
+# systemd expands ${LANMUX_WEB_PORT} in ExecStart. The panel works even
+# when lanmux-mihomo is down (node management stays available; reloads
+# report failure instead of silently succeeding).
+[Unit]
+Description=LanMux - web panel
+After=network-online.target lanmux-mihomo.service
+Wants=network-online.target
+StartLimitBurst=10
+StartLimitIntervalSec=300
+
+[Service]
+Type=simple
+# Non-root runtime (H-15): the panel never runs as root. /etc/lanmux is
+# the only writable path the service needs (config.yaml + .tmp/.bak,
+# lanmux.db + SQLite journal, geodata, metacubexd ui/); everything else
+# is read-only under ProtectSystem=strict. All four ports are > 1024
+# and no TUN is used, so no capability is required (empty
+# CapabilityBoundingSet). The service user is created by install.sh
+# (ensure_service_user) and owns /etc/lanmux (chown_data_dir).
+User=lanmux
+Group=lanmux
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+CapabilityBoundingSet=
+ReadWritePaths=/etc/lanmux
+Environment=PYTHONDONTWRITEBYTECODE=1
+WorkingDirectory=/opt/lanmux/backend
+EnvironmentFile=/etc/lanmux/lanmux.env
+ExecStart=/opt/lanmux/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port ${LANMUX_WEB_PORT}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

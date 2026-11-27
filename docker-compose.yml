@@ -1,0 +1,94 @@
+# LanMux — 单镜像 All-in-One Docker Compose（v1.0.2 主推部署）
+#
+# 镜像已内置：mihomo v1.19.34 + Geodata（GeoIP/GeoSite/Country.mmdb）+
+#             metacubexd 面板 + FastAPI 控制面 + Web 管理控制台
+#
+# 极简启动（无需手动配密码、无需预下载 Geodata）：
+#   1) 可选：cp .env.example .env（主要填 LANMUX_LAN_IP，不填在 host 模式下也会自动探测）
+#   2) docker compose pull && docker compose up -d
+#   3) 浏览器打开 http://<宿主机IP>:8086 完成首次设置管理员密码即可使用！
+#
+# 普通用户用 docker compose pull + docker compose up -d 拉预构建镜像。
+# 源码构建只作开发 / 调试 / 自定义，见 docker-compose.dev.yml。
+#
+# v1.0.0 起环境变量主名改为 LANMUX_*；旧 .env 里的 HUB_* / FENLIU_*
+# 仍被接受（LANMUX_* 优先），无需改动即可升级。
+
+services:
+  lanmux:
+    image: moyelab/lanmux:1.0.2
+    # 源码构建已移到 docker-compose.dev.yml（开发者用
+    # docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build）。
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   args:
+    #     PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    #     GITHUB_MIRROR: ${GITHUB_MIRROR:-}
+    container_name: lanmux
+    restart: unless-stopped
+
+    # 非 root 运行（H-12）：镜像默认 USER lanmux（UID/GID 10001），但这里
+    # 刻意以 0:0 启动 entrypoint——docker 首次创建 ./data 绑定挂载目录时
+    # 属主是 root，lanmux 写不进去；entrypoint（docker_runner.py）会先把
+    # /data 属主修正为 lanmux，再降权到 lanmux 后才启动 mihomo 与面板，
+    # 常驻进程绝不以 root 运行。不要删掉这行改成 user: lanmux，否则
+    # 全新 ./data 冷启动会因写不进数据目录而反复重启；也不要长期跑 root，
+    # 降权由 docker_runner.main() 强制执行。
+    # 副作用：宿主机 ./data 目录首次启动后属主会变成 UID 10001（文件本身
+    # 仍可读；想改回宿主机用户属主须先停容器再 chown，但下次启动又会改回）。
+    user: "0:0"
+
+    # =========================================================================
+    # 网络模式二选一：
+    # 1) Linux 常驻主机 / NAS / N1 强烈推荐 host 模式：
+    #    - 网页里修改 SS / Mixed / 控制器端口后热重载即刻生效，无需重建容器
+    #    - 自动探测宿主机局域网 IP
+    # =========================================================================
+    network_mode: host
+
+    # =========================================================================
+    # 2) 若需要 Bridge 端口隔离（如 macOS/Windows 或同机多实例），请注释上方
+    #    network_mode: host，取消下方 ports 注释，并在 .env 里填好 LANMUX_LAN_IP：
+    # =========================================================================
+    # ports:
+    #   - "${LANMUX_WEB_PORT:-${HUB_WEB_PORT:-8086}}:${LANMUX_WEB_PORT:-${HUB_WEB_PORT:-8086}}/tcp"
+    #   - "${LANMUX_SS_PORT:-${HUB_SS_PORT:-10001}}:${LANMUX_SS_PORT:-${HUB_SS_PORT:-10001}}/tcp"
+    #   - "${LANMUX_SS_PORT:-${HUB_SS_PORT:-10001}}:${LANMUX_SS_PORT:-${HUB_SS_PORT:-10001}}/udp"
+    #   - "${LANMUX_MIXED_PORT:-${HUB_MIXED_PORT:-7890}}:${LANMUX_MIXED_PORT:-${HUB_MIXED_PORT:-7890}}/tcp"
+    #   - "${LANMUX_MIXED_PORT:-${HUB_MIXED_PORT:-7890}}:${LANMUX_MIXED_PORT:-${HUB_MIXED_PORT:-7890}}/udp"
+    #   - "${LANMUX_CONTROLLER_PORT:-${HUB_CONTROLLER_PORT:-9090}}:${LANMUX_CONTROLLER_PORT:-${HUB_CONTROLLER_PORT:-9090}}/tcp"
+
+    volumes:
+      # 绑定挂载：首次启动时 entrypoint 会把宿主机 ./data 属主改为
+      # lanmux（UID 10001），之后面板 / 数据库 / 配置都由该用户读写。
+      # 若用命名卷代替绑定挂载（如 docker run -v lanmux-data:/data），
+      # 卷会继承镜像内 /data 的属主，无需 entrypoint 修正。
+      - ./data:/data
+
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      # 留空自动探测（host 模式）；bridge 模式请填宿主机局域网 IP
+      LANMUX_LAN_IP: ${LANMUX_LAN_IP:-${HUB_LAN_IP:-}}
+      # 四个端口。首次启动时从 .env 写入数据库；之后 SS/Mixed/控制器
+      # 三个端口以数据库为准（改端口走网页设置，或设 LANMUX_APPLY_ENV=1
+      # 重启一次），只有 LANMUX_WEB_PORT 每次启动都跟 .env 走。
+      LANMUX_WEB_PORT: ${LANMUX_WEB_PORT:-${HUB_WEB_PORT:-8086}}
+      LANMUX_SS_PORT: ${LANMUX_SS_PORT:-${HUB_SS_PORT:-10001}}
+      LANMUX_MIXED_PORT: ${LANMUX_MIXED_PORT:-${HUB_MIXED_PORT:-7890}}
+      LANMUX_CONTROLLER_PORT: ${LANMUX_CONTROLLER_PORT:-${HUB_CONTROLLER_PORT:-9090}}
+      # 以下密钥均可选：
+      # - ADMIN_PASSWORD 留空时，首次访问 Web 面板弹出设置向导
+      # - SS_PASSWORD / MIHOMO_SECRET 留空时，首次启动自动生成高强度随机密钥并入库
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SS_PASSWORD: ${SS_PASSWORD:-}
+      SS_CIPHER: ${SS_CIPHER:-aes-128-gcm}
+      MIHOMO_SECRET: ${MIHOMO_SECRET:-}
+      LANMUX_MIXED_AUTH_USER: ${LANMUX_MIXED_AUTH_USER:-${HUB_MIXED_AUTH_USER:-}}
+      LANMUX_MIXED_AUTH_PASS: ${LANMUX_MIXED_AUTH_PASS:-${HUB_MIXED_AUTH_PASS:-}}
+      # 默认自动启用内置 metacubexd（/data/mihomo/ui）；设为 none 可禁用
+      LANMUX_EXTERNAL_UI: ${LANMUX_EXTERNAL_UI:-${HUB_EXTERNAL_UI:-}}
+
+      # Image upgrades normally preserve persistent /data assets. Set to 1 for
+      # one startup to refresh bundled GeoIP/GeoSite/Country.mmdb + metacubexd.
+      LANMUX_REFRESH_ASSETS: ${LANMUX_REFRESH_ASSETS:-${HUB_REFRESH_ASSETS:-0}}

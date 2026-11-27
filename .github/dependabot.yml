@@ -1,0 +1,39 @@
+# Dependabot — weekly updates for the three supply-chain ecosystems
+# (audit M-45/M-49). Dependabot opens PRs; the CI lockfile-sync check
+# (docker-publish.yml `test` job) fails until the pip lockfiles are
+# regenerated with pip-compile in the same PR, so a floor bump can never
+# silently desync the lockfile. GitHub Actions updates move the pinned
+# commit SHAs (the `# vN` comments are what Dependabot reads).
+version: 2
+updates:
+  # Python dependencies: backend/requirements-prod.txt + requirements.txt
+  # (floors) and their pip-compile lockfiles.
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+  # GitHub Actions: keeps the SHA-pinned actions current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+  # Base images: alpine (Dockerfile assets stage), python:3.12-slim, mihomo.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies

@@ -1,0 +1,44 @@
+# LanMux — 下载资产 SHA256 校验清单
+#
+# 用途：install.sh 与 Dockerfile 构建时强制校验 mihomo / metacubexd /
+# geodata 三路下载，哈希不匹配即中止（fail-closed）。本文件是唯一的
+# 信任根：镜像代理只作传输加速，绝不以代理返回的内容为准。
+#
+# 格式：标准 sha256sum 输出（"<64 位 hex><两空格><文件名>"），文件名
+# 是 release asset 的原始名；install.sh 用 lookup_sha256 按名查表，
+# Dockerfile 用 sha256sum -c 按名校验。
+#
+# --- 哈希来源与核对（2026-11-26，维护者实测记录）-----------------------
+# mihomo v1.19.34（MetaCubeX/mihomo，2026-11-11 发布）：
+#   上游不提供 checksums.txt（…/v1.19.34/checksums.txt 实测 HTTP 404），
+#   故无官方公布哈希可对。以下两值是实际下载文件算得，并经两个独立
+#   镜像（gh-proxy.com 与 ghproxy.net）交叉核对完全一致，且文件体积
+#   与 GitHub release API 公布的 asset 体积逐字节相符
+#   （amd64 22731319 字节，arm64 20684679 字节）。
+# metacubexd v1.276.0（MetaCubeX/metacubexd，2026-11-21 发布）：
+#   上游同样不公布哈希。以下值是实际下载 compressed-dist.tgz 算得，
+#   经 gh-proxy.com 与 ghproxy.net 两个独立镜像交叉核对一致，体积
+#   2549341 字节与 release API 公布值相符。
+# geodata（MetaCubeX/meta-rules-dat）：
+#   上游只维护一个滚动发布，tag 字面就是 "latest"，无固定 tag 可钉
+#   （releases API 核实：全仓仅此一个 release，2026-11-26T04:16:13Z，
+#   名为 "Release 2026-11-26 12:14"）。以下三值钉住该快照的内容，
+#   且与上游随 asset 发布的官方 .sha256sum 文件公布值逐字一致
+#   （另经直连 github.com 取回 .sha256sum 复核 geoip.dat 一致）。
+#   上游滚动更新后，旧哈希会使安装/构建明确报错而非静默换内容；
+#   维护者须重新下载、交叉核对后更新本文件与下方的快照日期。
+#
+# --- geodata 快照信息（M-47 要求：记录 tag / 日期）--------------------
+# geodata-release-tag: latest（上游唯一发布，滚动更新）
+# geodata-release-date: 2026-11-26T04:16:13Z
+# geodata-release-name: Release 2026-11-26 12:14
+#
+# --- mihomo v1.19.34 ---------------------------------------------------
+223fab877e5795ce780ba39902e5f0b1113c1256ae244a7160f1165e017e9ccc  mihomo-linux-amd64-v1.19.34.gz
+daaf78a6240a282cdfd75bcbf98fe321f6bd52765cc29e79f344191198f0b50f  mihomo-linux-arm64-v1.19.34.gz
+# --- metacubexd v1.276.0 ----------------------------------------------
+8ed5b1e312136a161eb7bbbfc2c4d7dc95217487d0873739668d897ed366af9c  compressed-dist.tgz
+# --- geodata（meta-rules-dat 快照 2026-11-26）--------------------------
+9dc8e7de8db8300ce27b606f4a30632265713d2f33bcc568c0d2c44c825c8687  geoip.dat
+ae35a23f40a8e0486f0ed1723780ba6805a9f917a51ff30441eb2c41f688244c  geosite.dat
+6c3ca78dadf2477261ea6addf632682bcfc1ab5924bb4c30eb28c37c828e3373  country.mmdb

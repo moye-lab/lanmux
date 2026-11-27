@@ -1,0 +1,9 @@
+# LanMux backend dependencies (development + tests).
+# Production installs use requirements-prod.lock only.
+#
+# The exact, hashed install set is backend/requirements.lock (generated with
+# pip-compile --generate-hashes; see its header for the exact command).
+# CI installs and audits the lockfile, never this file:
+#   pip install --require-hashes -r backend/requirements.lock
+-r requirements-prod.txt
+pytest>=9.0.3

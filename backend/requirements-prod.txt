@@ -12,6 +12,6 @@
 #       -o backend/requirements-prod.lock backend/requirements-prod.txt
 fastapi>=0.115.13
 uvicorn>=0.30
-pydantic>=2.4.0
+pydantic>=2.14.4
 pyyaml>=6.0
 httpx>=0.27

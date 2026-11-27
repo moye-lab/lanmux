@@ -6,4 +6,4 @@
 # CI installs and audits the lockfile, never this file:
 #   pip install --require-hashes -r backend/requirements.lock
 -r requirements-prod.txt
-pytest>=9.0.3
+pytest>=9.2.0
